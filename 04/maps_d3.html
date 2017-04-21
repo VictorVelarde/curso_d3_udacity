@@ -2,50 +2,76 @@
 <html>
 
 <head>
-    <meta charset="utf-8">
-    <script src="https://d3js.org/d3.v4.min.js"></script>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v4.min.js"></script>
 
-    <style>
-        h2 {
-            text-align: center;
-            font-size: 32px;
-        }
-    </style>
+  <style>
+    h2 {
+      text-align: center;
+      font-size: 32px;
+    }
+  </style>
 
-    <script type="text/javascript">
-        function draw(geo_data) {
-            "use strict";
-            var margin = 75,
-                width = 1200 - margin,
-                height = 900 - margin;
+  <script type="text/javascript">
+    function draw(geo_data) {
+      "use strict";
+      var margin = 75,
+        width = 1200 - margin,
+        height = 900 - margin;
 
-            var svg = d3.select("body")
-                .append("svg")
-                .attr("width", width + margin)
-                .attr("height", height + margin)
-                .append('g')
-                .attr('class', 'map');
+      var svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin)
+        .attr("height", height + margin)
+        .append('g')
+        .attr('class', 'map');
 
-            var proj = d3.geoMercator()
-                .scale(120)
-                .translate([width / 2, height / 2]);
-            var path = d3.geoPath().projection(proj);
+      var proj = d3.geoMercator()
+        .scale(120)
+        .translate([width / 2, height / 2]);
+      var path = d3.geoPath().projection(proj);
 
-            var map = svg.selectAll('path')
-                .data(geo_data.features)
-                .enter()
-                .append('path')
-                .attr('d', path)
-                .style('fill', 'rgb(9,157,217)')
-                .style('stroke', 'black');
-        };
-    </script>
+      var map = svg.selectAll('path')
+        .data(geo_data.features)
+        .enter()
+        .append('path')
+        .attr('d', path)
+        .style('fill', 'rgb(9,157,217)')
+        .style('stroke', 'black')
+        .style('stroke-width', 0.5);
+
+      function plot_points(data) {
+        console.table(data.slice(0, 10));
+        var nested = d3.nest()
+          .key(function(d) {
+            return d['date'].getUTCFullYear();
+          })
+          .rollup(function(leaves) {
+            var total = d3.sum(leaves, function(d) {
+              return d['attendace'];
+            });
+
+            var coords = leaves.map(function(d) {
+              return proj([+d.long, +d.lat]);
+            });
+          })
+          .entries(data);
+      }
+
+      d3.tsv("world_cup_geo.tsv", function(d) {
+        var parse = d3.timeParse("%d-%m-%Y (%H:%M h)");
+        d['attendance'] = +d['attendace'];
+        d['date'] = parse(d['date']);
+        return d;
+      }, plot_points);
+    };
+  </script>
 </head>
 
 <body>
-    <script type="text/javascript">
-        d3.json("world_countries.json", draw);
-    </script>
+  <script type="text/javascript">
+    d3.json("world_countries.json", draw);
+  </script>
 </body>
 
 </html>
