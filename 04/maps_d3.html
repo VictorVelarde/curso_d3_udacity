@@ -40,27 +40,68 @@
         .style('stroke', 'black')
         .style('stroke-width', 0.5);
 
+      function aggr_year(leaves) {
+        var total = d3.sum(leaves, function(d) {
+          return d['attendance'];
+        });
+        var coords = leaves.map(function(d) {
+          return proj([+d.long, +d.lat]);
+        });
+        var center_x = d3.mean(coords, function(d) {
+          return d[0];
+        });
+        var center_y = d3.mean(coords, function(d) {
+          return d[1];
+        });
+
+        return {
+          'attendance': total,
+          'x': center_x,
+          'y': center_y
+        }
+      }
+
       function plot_points(data) {
-        console.table(data.slice(0, 10));
+        //console.table(data.slice(0, 10));
+        // Group data by Year
         var nested = d3.nest()
           .key(function(d) {
             return d['date'].getUTCFullYear();
           })
-          .rollup(function(leaves) {
-            var total = d3.sum(leaves, function(d) {
-              return d['attendace'];
-            });
-
-            var coords = leaves.map(function(d) {
-              return proj([+d.long, +d.lat]);
-            });
-          })
+          .rollup(aggr_year)
           .entries(data);
+
+        var attendance_extent = d3.extent(nested, function(d) {
+          return d.value['attendance'];
+        });
+
+        var radius = d3.scaleSqrt()
+          .domain(attendance_extent)
+          .range([0, 12]);
+
+        svg.append('g')
+          .attr('class', 'bubble')
+          .selectAll('circle')
+          .data(nested)
+          .enter()
+          .append('circle')
+          .attr("cx", function(d) {
+            return d.value['x'];
+          })
+          .attr("cy", function(d) {
+            return d.value['y'];
+          })
+          .attr("r", function(d) {
+            return radius(d.value['attendance']);
+          })
+          .attr('fill', 'rgb(247, 148, 32)')
+          .attr('opacity', 0.7);
+
       }
 
       d3.tsv("world_cup_geo.tsv", function(d) {
         var parse = d3.timeParse("%d-%m-%Y (%H:%M h)");
-        d['attendance'] = +d['attendace'];
+        d['attendance'] = +d['attendance'];
         d['date'] = parse(d['date']);
         return d;
       }, plot_points);
