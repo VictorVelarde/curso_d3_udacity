@@ -26,13 +26,14 @@
         .append('g')
         .attr('class', 'map');
 
+      /* Mercator projection, adjusted to available space */
       var proj = d3.geoMercator()
         .scale(120)
         .translate([width / 2, height / 2]);
       var path = d3.geoPath().projection(proj);
 
       var map = svg.selectAll('path')
-        .data(geo_data.features)
+        .data(geo_data.features) // drawing the countries...
         .enter()
         .append('path')
         .attr('d', path)
@@ -40,6 +41,7 @@
         .style('stroke', 'black')
         .style('stroke-width', 0.5);
 
+      /* Aggregate data per year */
       function aggr_year(leaves) {
         var total = d3.sum(leaves, function(d) {
           return d['attendance'];
@@ -53,14 +55,21 @@
         var center_y = d3.mean(coords, function(d) {
           return d[1];
         });
+        var teams = d3.set();
+        leaves.forEach(function(d) {
+          teams.add(d['team1']);
+          teams.add(d['team2']);
+        });
 
         return {
           'attendance': total,
           'x': center_x,
-          'y': center_y
+          'y': center_y,
+          'teams': teams.values()
         }
       }
 
+      /* Plot circles in proportion to their attendance */
       function plot_points(data) {
         //console.table(data.slice(0, 10));
         // Group data by Year
@@ -82,7 +91,9 @@
         svg.append('g')
           .attr('class', 'bubble')
           .selectAll('circle')
-          .data(nested)
+          .data(nested.sort(function(a, b) {
+            return b.value['attendance'] - a.value['attendance'];
+          }), key_func)
           .enter()
           .append('circle')
           .attr("cx", function(d) {
@@ -97,8 +108,42 @@
           .attr('fill', 'rgb(247, 148, 32)')
           .attr('opacity', 0.7);
 
+        debugger;
+        update(1930);
+
+        function key_func(d) {
+          return d['key'];
+        }
+
+        /* */
+        function update(year) {
+          // 1. filter
+          var filtered = nested.filter(function(d) {
+            var y = parseInt(d['key']);
+            return (y === year);
+          });
+
+          var circles = svg.selectAll('circle')
+            .data(filtered, key_func);
+
+          circles.exit().remove();
+
+          circles.enter().append('circle')
+            .attr("cx", function(d) {
+              return d.value['x'];
+            })
+            .attr("cy", function(d) {
+              return d.value['y'];
+            })
+            .attr("r", function(d) {
+              return radius(d.value['attendance']);
+            })
+            .attr('fill', 'rgb(247, 148, 32)')
+            .attr('opacity', 0.7);
+        }
       }
 
+      /* Loading and drawing attendance data */
       d3.tsv("world_cup_geo.tsv", function(d) {
         var parse = d3.timeParse("%d-%m-%Y (%H:%M h)");
         d['attendance'] = +d['attendance'];
