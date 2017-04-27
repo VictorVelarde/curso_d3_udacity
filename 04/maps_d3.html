@@ -108,8 +108,7 @@
           .attr('fill', 'rgb(247, 148, 32)')
           .attr('opacity', 0.7);
 
-        debugger;
-        update(1930);
+        update(2006);
 
         function key_func(d) {
           return d['key'];
@@ -140,6 +139,20 @@
             })
             .attr('fill', 'rgb(247, 148, 32)')
             .attr('opacity', 0.7);
+
+          var countries = filtered[0].value['teams'];
+          showJustParticipant(countries);
+
+          function showJustParticipant(countries) {
+            svg.selectAll('path')
+              .style('fill', function(d) {
+                if (countries.indexOf(d.properties.name) !== -1) {
+                  return 'lightblue';
+                } else {
+                  return 'white';
+                }
+              });
+          }
         }
       }
 
