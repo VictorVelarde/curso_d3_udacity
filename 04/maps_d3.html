@@ -8,17 +8,44 @@
   <style>
     h2 {
       text-align: center;
-      font-size: 32px;
+    }
+
+    h3 {
+      text-align: center;
+      font-size: 48px;
+      margin: 0px;
+    }
+
+    div.years_buttons {
+      position: fixed;
+      top: 150px;
+      right: 50px;
+    }
+
+    div.years_buttons div {
+      background-color: rgb(247, 148, 32);
+      padding: 3px;
+      margin: 7px;
+      cursor: pointer;
     }
   </style>
 
   <script type="text/javascript">
     function draw(geo_data) {
       "use strict";
+
+      // Dimensions
       var margin = 75,
         width = 1200 - margin,
-        height = 900 - margin;
+        height = 850 - margin;
 
+      // Title - subtitle
+      var title = d3.select("body")
+        .append("h2")
+        .text("FIFA World Cup Attendance");
+      var yearSubtitle = d3.select("body").append("h3").text("1930-2014");
+
+      // Main map element
       var svg = d3.select("body")
         .append("svg")
         .attr("width", width + margin)
@@ -26,19 +53,28 @@
         .append('g')
         .attr('class', 'map');
 
+      // Buttons to select year
+      var years = []; //empty years array
+      for (var year = 1930; year <= 2015; year += 4) {
+        if (year !== 1942 && year !== 1946) {
+          years.push(year);
+        }
+      }
+
       /* Mercator projection, adjusted to available space */
       var proj = d3.geoMercator()
         .scale(120)
         .translate([width / 2, height / 2]);
       var path = d3.geoPath().projection(proj);
 
+      /* Drawing countries from geojson */
       var map = svg.selectAll('path')
         .data(geo_data.features) // drawing the countries...
         .enter()
         .append('path')
         .attr('d', path)
         .style('fill', 'rgb(9,157,217)')
-        .style('stroke', 'black')
+        .style('stroke', 'gray')
         .style('stroke-width', 0.5);
 
       /* Aggregate data per year */
@@ -86,8 +122,9 @@
 
         var radius = d3.scaleSqrt()
           .domain(attendance_extent)
-          .range([0, 12]);
+          .range([0, 20]);
 
+        // Adding circles
         svg.append('g')
           .attr('class', 'bubble')
           .selectAll('circle')
@@ -108,13 +145,11 @@
           .attr('fill', 'rgb(247, 148, 32)')
           .attr('opacity', 0.7);
 
-        update(2006);
-
         function key_func(d) {
           return d['key'];
         }
 
-        /* */
+        /* Update viz, filtering data per year (attendance & participants) */
         function update(year) {
           // 1. filter
           var filtered = nested.filter(function(d) {
@@ -122,29 +157,35 @@
             return (y === year);
           });
 
+          // 2. add-remove circle
           var circles = svg.selectAll('circle')
             .data(filtered, key_func);
-
           circles.exit().remove();
+          circles.enter()
+            .append('circle')
 
-          circles.enter().append('circle')
             .attr("cx", function(d) {
               return d.value['x'];
             })
             .attr("cy", function(d) {
               return d.value['y'];
             })
+            .transition()
+            .duration(500)
             .attr("r", function(d) {
               return radius(d.value['attendance']);
             })
             .attr('fill', 'rgb(247, 148, 32)')
             .attr('opacity', 0.7);
 
+          // 3. filter participant countries
           var countries = filtered[0].value['teams'];
           showJustParticipant(countries);
 
           function showJustParticipant(countries) {
             svg.selectAll('path')
+              .transition()
+              .duration(500)
               .style('fill', function(d) {
                 if (countries.indexOf(d.properties.name) !== -1) {
                   return 'lightblue';
@@ -153,7 +194,49 @@
                 }
               });
           }
+
+          // 4. year at title
+          d3.select("h3").text(year);
         }
+
+        // Animation, 1 year per frame
+        var current_year_idx = 0;
+        var year_interval = setInterval(function() {
+          update(years[current_year_idx]);
+          current_year_idx++;
+          if (current_year_idx >= years.length) {
+            clearInterval(year_interval);
+
+            // buttons added after 1 complete animation
+            var buttons = d3.select("body")
+              .append("div")
+              .attr("class", "years_buttons")
+              .selectAll("div")
+              .data(years)
+              .enter()
+              .append('div')
+              .text(function(y) {
+                return y;
+              });
+
+            buttons.on('click', function(d) {
+              // reset styles
+              d3.select(".years_buttons")
+                .selectAll("div")
+                .attr('style', '');
+
+              // style selected
+              d3.select(this)
+                .transition()
+                .duration(500)
+                .style('background-color', 'lightblue')
+                .style('color', 'white');
+
+              d3.selectAll()
+              update(d);
+            });
+          }
+        }, 200);
       }
 
       /* Loading and drawing attendance data */
@@ -163,6 +246,7 @@
         d['date'] = parse(d['date']);
         return d;
       }, plot_points);
+
     };
   </script>
 </head>
