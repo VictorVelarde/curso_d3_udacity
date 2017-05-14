@@ -1,3 +1,14 @@
+# Beginner
+
+[Baseball Data](https://www.google.com/url?q=https://s3.amazonaws.com/udacity-hosted-downloads/ud507/baseball_data.csv&sa=D&ust=1494316963629000&usg=AFQjCNEMSV5EUgUtVdk7pm4bT1qZ0WyKDQ)
+
+A data set containing 1,157 baseball players including their handedness (right or left handed), height (in inches), weight (in pounds), batting average, and home runs.
+
+Create a visualization that shows differences among the performance of the baseball players.
+
+---
+
+
 # Advanced
 
 * [PISA Data](https://www.google.com/url?q=https://s3.amazonaws.com/udacity-hosted-downloads/ud507/pisa2012.csv.zip&sa=D&ust=1494230992213000&usg=AFQjCNFMKDYspvLxUfmiBbsLyIYd22sb6Q)
